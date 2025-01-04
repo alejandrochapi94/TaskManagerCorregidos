@@ -16,6 +16,9 @@ async function  cargarTareas () {
             const tabla = document.getElementById("Tareas");
             tabla.innerHTML = ''; // Limpiar la tabla antes de agregar tareas
 
+            //Funcionalidad para el reset de todas las tareas
+            const ids = [];
+
             arr.forEach((elemento, index) => {
                 const nuevaFila = document.createElement("tr");
 
@@ -30,14 +33,14 @@ async function  cargarTareas () {
                 const celdaTexto = document.createElement("td");
                 const parrafo = document.createElement("p");
                 parrafo.textContent = elemento.task;
-                parrafo.style.textDecoration = elemento.completada ? "line-through" : "none";
+                parrafo.style.textDecoration = check.checked ? "line-through" : "none";
                 celdaTexto.appendChild(parrafo);
 
                 // Celda para la etiqueta de estado
                 const celdaEstado = document.createElement("td");
                 const label = document.createElement("span");
-                label.textContent = check.checked ? "Completado" : "Pendiente";
-                label.className = check.checked ?  "badge bg-success": "badge bg-danger";
+                label.textContent = check.checked ?  "Completado" :"Pendiente";
+                label.className = check.checked ?   "badge bg-success":"badge bg-danger";
                 celdaEstado.appendChild(label);
 
                 // Celda para el botón de borrar
@@ -65,6 +68,9 @@ async function  cargarTareas () {
                 tabla.appendChild(nuevaFila);
 
 
+                // Guardar el ID en el local storage
+                ids.push(elemento._id);
+
                 check.addEventListener("input", async function() {
 
                     
@@ -72,7 +78,7 @@ async function  cargarTareas () {
                     label.textContent = this.checked ? "Completado" : "Pendiente";
                     label.className = this.checked ? "badge bg-success" : "badge bg-danger";
                     parrafo.style.textDecoration = this.checked ? "line-through" : "none";
-                    fecha.textContent = this.checked ? new Date().toLocaleString() : new Date().toLocaleString();
+                 //   fecha.textContent = this.checked ? new Date().toLocaleString() : new Date().toLocaleString();
 
                     const id = boton.id;
                     try {
@@ -93,6 +99,9 @@ async function  cargarTareas () {
                   
                 });
             });
+
+            // Guardar los IDs en el local storage
+            localStorage.setItem("ids", JSON.stringify(ids));
         }
     } catch (error) {
         console.error("Error al cargar tareas:", error);
@@ -147,9 +156,43 @@ document.getElementById("Tareas").addEventListener('click', async function(event
     }
 });
 
+function showModal(message) {
+    const modalMessage = document.getElementById('modalMessage');
+    modalMessage.textContent = message;
+    const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+    messageModal.show();
+  }
+
+
+
 document.getElementById("Resetear").addEventListener("click", function() {
-    document.getElementById("Tareas").innerHTML = "";
-    localStorage.removeItem("tareas");
+
+    showModal("esta seguro de resetear las tareas?");
+
+    document.getElementById("si").addEventListener("click", async function() {
+        const ids = JSON.parse(localStorage.getItem("ids"));
+        if (ids) {
+            for (const id of ids) {
+                try {
+                    const response = await fetch(`http://localhost:3000/api/borrar_tarea/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include'
+                    });
+                    const arr = await response.json();
+                } catch (error) {
+                    console.error("Error al eliminar tarea:", error);
+                }
+            }
+            localStorage.removeItem("ids");
+            cargarTareas();
+        }
+    });
+        
+   
+    
 });
 
 document.addEventListener('DOMContentLoaded', cargarTareas);
